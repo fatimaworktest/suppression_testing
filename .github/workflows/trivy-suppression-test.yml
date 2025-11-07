@@ -1,0 +1,175 @@
+name: Trivy Suppression Rules Test
+
+on:
+  workflow_dispatch:  # Allows manual triggering
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  # Trivy/Aqua Configuration
+  TRIVY_RUN_AS_PLUGIN: 'aqua'
+  AQUA_URL: 'https://api.dev.supply-chain.cloud.aquasec.com'
+  CSPM_URL: 'https://stage.api.cloudsploit.com'
+  
+  # Override Organization (this is the key variable causing the issue)
+  OVERRIDE_ORGANIZATION: 'fatimaworktest'
+  
+  # Repository overrides to ensure consistent identification
+  OVERRIDE_REPOSITORY: 'trivy-suppression-test'
+  OVERRIDE_REPOSITORY_URL: 'https://github.com/fatimaworktest/trivy-suppression-test.git'
+  OVERRIDE_REPOSITORY_SOURCE: 'GitHub'
+  OVERRIDE_BUILDSYSTEM: 'GitHub Actions'
+
+jobs:
+  test-suppression-rules:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch full history for better context
+    
+    - name: Create vulnerable test files
+      run: |
+        # Create a simple package.json with known vulnerabilities
+        cat > package.json << 'EOF'
+        {
+          "name": "vulnerable-test-app",
+          "version": "1.0.0",
+          "description": "Test app with vulnerabilities for suppression testing",
+          "dependencies": {
+            "lodash": "4.17.15",
+            "axios": "0.19.2",
+            "moment": "2.24.0"
+          }
+        }
+        EOF
+        
+        # Create a Dockerfile with vulnerabilities
+        cat > Dockerfile << 'EOF'
+        FROM node:12-alpine
+        COPY package.json .
+        RUN npm install
+        COPY . .
+        EXPOSE 3000
+        CMD ["node", "app.js"]
+        EOF
+        
+        # Create a simple app file
+        cat > app.js << 'EOF'
+        const express = require('express');
+        const app = express();
+        
+        app.get('/', (req, res) => {
+          res.send('Hello World!');
+        });
+        
+        app.listen(5000, () => {
+          console.log('Server running on port 3000');
+        });
+        EOF
+        
+        # Create a requirements.txt with vulnerabilities
+        cat > requirements.txt << 'EOF'
+        Django==2.2.0
+        Flask==1.1.1
+        requests==2.20.0
+        EOF
+        
+        echo "Created test files with known vulnerabilities"
+    
+    - name: Run Aqua scanner
+      uses: docker://aquasec/aqua-scanner
+      with:
+        args: trivy fs --scanners misconfig,vuln,secret,license --format=json --output=trivy-results.json --debug .
+      env:
+        AQUA_KEY: ${{ secrets.AQUA_KEY }}
+        AQUA_SECRET: ${{ secrets.AQUA_SECRET }}
+        TRIVY_TOKEN: ${{ secrets.TRIVY_TOKEN }}
+        AQUA_URL: https://api.dev.supply-chain.cloud.aquasec.com
+        CSPM_URL: https://stage.api.cloudsploit.com
+        TRIVY_RUN_AS_PLUGIN: 'aqua'
+        # Override organization and repository settings
+        OVERRIDE_ORGANIZATION: 'CMA CGM'
+        OVERRIDE_REPOSITORY: 'trivy-suppression-test'
+        OVERRIDE_REPOSITORY_URL: 'https://github.com/fatimaworktest/trivy-suppression-test.git'
+        OVERRIDE_REPOSITORY_SOURCE: 'GitHub'
+        OVERRIDE_BUILDSYSTEM: 'GitHub Actions'
+    
+    - name: Display scan results
+      run: |
+        echo "=== SCAN SUMMARY ==="
+        if [ -f trivy-results.json ]; then
+          echo "📊 TOTAL COUNTS:"
+          echo "Vulnerabilities: $(jq '[.Results[]?.Vulnerabilities[]?] | length' trivy-results.json)"
+          echo "Secrets: $(jq '[.Results[]?.Secrets[]?] | length' trivy-results.json)"
+          echo "Misconfigurations: $(jq '[.Results[]?.Misconfigurations[]?] | length' trivy-results.json)"
+          echo ""
+          
+          echo "🔍 VULNERABILITIES BY PACKAGE:"
+          jq -r '.Results[] | select(.Class == "vuln") | "\(.Target): \(.Vulnerabilities | length) vulnerabilities"' trivy-results.json
+          echo ""
+          
+          echo "🚨 TOP VULNERABILITIES (CVE + Severity):"
+          jq -r '.Results[] | select(.Class == "vuln") | .Vulnerabilities[] | "\(.VulnerabilityID) (\(.Severity)) - \(.Title)"' trivy-results.json | head -10
+          echo ""
+          
+          echo "🔐 SECRETS FOUND:"
+          jq -r '.Results[]?.Secrets[]?.RuleID' trivy-results.json | sort | uniq -c || echo "No secrets found"
+          echo ""
+          
+          echo "⚙️ MISCONFIGURATIONS FOUND:"
+          jq -r '.Results[]?.Misconfigurations[]?.ID' trivy-results.json | sort | uniq -c || echo "No misconfigurations found"
+          echo ""
+          
+          echo "📋 SUPPRESSION CHECK:"
+          echo "If you created suppression rules for specific CVEs, check if they appear above."
+          echo "If they don't appear, your suppression rules are working! ✅"
+          echo "If they still appear, suppression rules may not be applied. ❌"
+        else
+          echo "No scan results file found"
+        fi
+    
+    - name: Upload scan results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: trivy-scan-results-${{ github.run_number }}
+        path: |
+          trivy-results.json
+          *.log
+        retention-days: 30
+    
+    - name: Check for suppression issues
+      run: |
+        echo "=== SUPPRESSION RULE ANALYSIS ==="
+        echo "This workflow reproduces the issue where:"
+        echo "1. Suppression rules work correctly when repository exists"
+        echo "2. After deleting repository from Supply Chain UI and rescanning"
+        echo "3. Suppression rules don't apply on first scan"
+        echo "4. Only work on subsequent scans"
+        echo ""
+        echo "To reproduce the full issue:"
+        echo "1. Run this workflow (first scan)"
+        echo "2. Create suppression rules in Supply Chain UI"
+        echo "3. Run workflow again (should work with suppressions)"
+        echo "4. Delete repository from Supply Chain UI"
+        echo "5. Run workflow again (suppressions may not work)"
+        echo "6. Run workflow again (suppressions should work)"
+    
+    - name: Display environment info
+      run: |
+        echo "=== ENVIRONMENT INFORMATION ==="
+        echo "GitHub Repository: ${{ github.repository }}"
+        echo "GitHub Ref: ${{ github.ref }}"
+        echo "GitHub SHA: ${{ github.sha }}"
+        echo "Override Organization: $OVERRIDE_ORGANIZATION"
+        echo "Override Repository: $OVERRIDE_REPOSITORY"
+        echo "Override Repository URL: $OVERRIDE_REPOSITORY_URL"
+        echo "Override Repository Source: $OVERRIDE_REPOSITORY_SOURCE"
+        echo "Override Build System: $OVERRIDE_BUILDSYSTEM"
+        echo "Run Number: ${{ github.run_number }}"
+        echo "Run ID: ${{ github.run_id }}"
