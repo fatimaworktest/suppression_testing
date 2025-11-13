@@ -94,11 +94,12 @@ jobs:
         CSPM_URL: https://stage.api.cloudsploit.com
         TRIVY_RUN_AS_PLUGIN: 'aqua'
         # Override organization and repository settings
-        OVERRIDE_ORGANIZATION: 'CMA CGM'
-        OVERRIDE_REPOSITORY: 'trivy-suppression-test'
-        OVERRIDE_REPOSITORY_URL: 'https://github.com/fatimaworktest/trivy-suppression-test.git'
+        OVERRIDE_ORGANIZATION: 'fatimaworktest'
+        OVERRIDE_REPOSITORY: 'suppression_testing'
+        OVERRIDE_REPOSITORY_URL: 'https://github.com/fatimaworktest/suppression_testing.git'
         OVERRIDE_REPOSITORY_SOURCE: 'GitHub'
         OVERRIDE_BUILDSYSTEM: 'GitHub Actions'
+        OVERRIDE_SCMID: "github.com/fatimaworktest/suppression_testing"
     
     - name: Display scan results
       run: |
