@@ -17,10 +17,11 @@ env:
   OVERRIDE_ORGANIZATION: 'fatimaworktest'
   
   # Repository overrides to ensure consistent identification
-  OVERRIDE_REPOSITORY: 'trivy-suppression-test'
-  OVERRIDE_REPOSITORY_URL: 'https://github.com/fatimaworktest/trivy-suppression-test.git'
+  OVERRIDE_REPOSITORY: 'suppression_testingt'
+  OVERRIDE_REPOSITORY_URL: 'https://github.com/fatimaworktest/suppression_testing.git'
   OVERRIDE_REPOSITORY_SOURCE: 'GitHub'
   OVERRIDE_BUILDSYSTEM: 'GitHub Actions'
+  OVERRIDE_SCMID: "github.com/fatimaworktest/suppression_testing"
 
 jobs:
   test-suppression-rules:
