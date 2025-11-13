@@ -17,7 +17,7 @@ env:
   OVERRIDE_ORGANIZATION: 'fatimaworktest'
   
   # Repository overrides to ensure consistent identification
-  OVERRIDE_REPOSITORY: 'suppression_testingt'
+  OVERRIDE_REPOSITORY: 'suppression_testing'
   OVERRIDE_REPOSITORY_URL: 'https://github.com/fatimaworktest/suppression_testing.git'
   OVERRIDE_REPOSITORY_SOURCE: 'GitHub'
   OVERRIDE_BUILDSYSTEM: 'GitHub Actions'
