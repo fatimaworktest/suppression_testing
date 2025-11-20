@@ -5,7 +5,7 @@ on:
   push:
     branches: [ main, master ]
   pull_request:
-    branches: [ main, master ]
+   
 
 env:
   # Trivy/Aqua Configuration
@@ -31,7 +31,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Fetch full history for better context
+        fetch-depth: 1  # Fetch full history for better context
     
     - name: Debug Git Metadata (What Trivy Sees)
       run: |
