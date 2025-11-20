@@ -33,6 +33,42 @@ jobs:
       with:
         fetch-depth: 0  # Fetch full history for better context
     
+    - name: Debug Git Metadata (What Trivy Sees)
+      run: |
+        echo "=== GIT REPOSITORY METADATA DEBUG ==="
+        echo "This shows what Trivy Commercial detects from your repository"
+        echo ""
+        
+        echo "📍 Current Branch:"
+        git branch --show-current || echo "Unable to determine current branch"
+        echo ""
+        
+        echo "🔗 Git Remotes:"
+        git remote -v || echo "No remotes configured"
+        echo ""
+        
+        echo "🎯 Default Branch (What Trivy Uses):"
+        echo "Running: git remote show origin | grep 'HEAD branch'"
+        git remote show origin | grep "HEAD branch" || echo "⚠️ WARNING: Cannot determine default branch"
+        echo ""
+        
+        echo "📊 Full Remote Info (Trivy's Detection Command):"
+        echo "Running: git remote show origin"
+        git remote show origin || echo "⚠️ ERROR: git remote show origin failed - Trivy cannot detect default branch!"
+        echo ""
+        
+        echo "🔍 Symbolic Ref Check:"
+        git symbolic-ref refs/remotes/origin/HEAD 2>&1 || echo "⚠️ origin/HEAD not set, may need: git remote set-head origin --auto"
+        echo ""
+        
+        echo "📝 Current Commit:"
+        echo "SHA: $(git rev-parse HEAD)"
+        echo "Author: $(git log -1 --pretty=format:'%an <%ae>')"
+        echo "Date: $(git log -1 --pretty=format:'%ad')"
+        echo ""
+        
+        echo "=== END GIT METADATA DEBUG ==="
+    
     - name: Create vulnerable test files
       run: |
         # Create a simple package.json with known vulnerabilities
