@@ -17,7 +17,6 @@ env:
   OVERRIDE_REPOSITORY_URL: 'https://github.com/fatimaworktest/suppression_testing.git'
   OVERRIDE_REPOSITORY_SOURCE: 'GitHub'
   OVERRIDE_BUILDSYSTEM: 'GitHub Actions'
-  OVERRIDE_SCMID: "github.com/fatimaworktest/suppression_testing"
 jobs:
   test-suppression-rules:
     runs-on: ubuntu-latest
