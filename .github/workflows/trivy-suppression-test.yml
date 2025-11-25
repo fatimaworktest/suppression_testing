@@ -6,7 +6,6 @@ on:
   pull_request:
     branches: [ main, master ]
 env:
-  # Trivy/Aqua Configuration
   TRIVY_RUN_AS_PLUGIN: 'aqua'
   AQUA_URL: 'https://api.dev.supply-chain.cloud.aquasec.com'
   CSPM_URL: 'https://stage.api.cloudsploit.com'
